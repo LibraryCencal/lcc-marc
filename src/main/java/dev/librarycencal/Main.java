@@ -1,5 +1,8 @@
 package dev.librarycencal;
 
+import joptsimple.OptionParser;
+import joptsimple.util.PathConverter;
+import joptsimple.util.RegexMatcher;
 import org.marc4j.MarcJsonReader;
 import org.marc4j.MarcJsonWriter;
 import org.marc4j.MarcReader;
@@ -15,74 +18,27 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
 
 public class Main {
-    public static int maxItems = 999999999;
-
     public static void main(String[] args) {
-        List<String> validInputTypes = Arrays.asList("json", "iso");
-        List<String> validOutputTypes = Arrays.asList("json", "marc", "iso");
-        String typeInput = null;
-        String typeOutput = null;
-        Path inputPath = null;
-        Path outputPath = null;
-        int max = 99999999;
+        var parser = new OptionParser();
 
-        for (int i = 0; i < args.length; ++i) {
-            if ("-tI".equals(args[i]) && i + 1 < args.length) {
-                typeInput = args[++i].toLowerCase(Locale.ROOT);
+        var inputTypeArg = parser.accepts("tI").withRequiredArg().ofType(String.class).withValuesConvertedBy(new RegexMatcher("(json|iso)", 0)).required();
+        var outputTypeArg = parser.accepts("tO").withRequiredArg().ofType(String.class).withValuesConvertedBy(new RegexMatcher("(json|iso|marc)", 0)).required();
+        var inArg = parser.accepts("in").withRequiredArg().ofType(String.class).withValuesConvertedBy(new PathConverter()).required();
+        var outArg = parser.accepts("out").withRequiredArg().ofType(String.class).withValuesConvertedBy(new PathConverter()).required();
+        var maxItemsArg = parser.accepts("maxItems").withRequiredArg().ofType(Integer.class).defaultsTo(99999999);
 
-                if (!validInputTypes.contains(typeInput)) {
-                    System.err.println("Error: -tI" + typeInput + " is not valid value!");
-                    return;
-                }
-            } else if ("-tO".equals(args[i]) && i + 1 < args.length) {
-                typeOutput = args[++i].toLowerCase(Locale.ROOT);
+        var optionSet = parser.parse(args);
 
-                if (!validOutputTypes.contains(typeOutput)) {
-                    System.err.println("Error: -tO" + typeOutput + " is not valid value!");
-                    return;
-                }
-            } else if ("-in".equals(args[i]) && i + 1 < args.length) {
-                inputPath = Path.of(args[++i]);
-            } else if ("-out".equals(args[i]) && i + 1 < args.length) {
-                outputPath = Path.of(args[++i]);
-            } else if ("-maxItems".equals(args[i]) && i + 1 < args.length) {
-                try {
-                    maxItems = Integer.parseInt(args[++i]);
-                } catch (NumberFormatException e) {
-                    e.printStackTrace();
-                    return;
-                }
-            }
-        }
-
-        if (typeInput == null) {
-            System.err.println("Error: argument -tI is missing!");
-            return;
-        }
-
-        if (typeOutput == null) {
-            System.err.println("Error: argument -tO is missing!");
-            return;
-        }
+        var typeInput = optionSet.valueOf(inputTypeArg);
+        var typeOutput = optionSet.valueOf(outputTypeArg);
+        var inputPath = optionSet.valueOf(inArg);
+        var outputPath = optionSet.valueOf(outArg);
+        var maxItems = optionSet.valueOf(maxItemsArg);
 
         if (typeInput.equals(typeOutput)) {
             System.err.println("Error: output type cannot be the same as input!");
-        }
-
-        if (inputPath == null) {
-            System.err.println("Error: argument -in is missing!");
-            return;
-        }
-
-        if (outputPath == null) {
-            System.err.println("Error: argument -out is missing!");
-            return;
         }
 
         if (!Files.exists(inputPath)) {
@@ -93,13 +49,13 @@ public class Main {
         try (FileInputStream in = new FileInputStream(inputPath.toFile());
              FileOutputStream out = new FileOutputStream(outputPath.toFile())) {
             if (typeInput.equals("json") && typeOutput.equals("iso")) {
-                convert(new MarcJsonReader(in), new MarcStreamWriter(out));
+                convert(new MarcJsonReader(in), new MarcStreamWriter(out), maxItems);
             } else if (typeInput.equals("json") && typeOutput.equals("marc")) {
-                convert(new MarcJsonReader(in), new MarcTxtWriter(out));
+                convert(new MarcJsonReader(in), new MarcTxtWriter(out), maxItems);
             } else if (typeInput.equals("iso") && typeOutput.equals("marc")) {
-                convert(new MarcStreamReader(in), new MarcTxtWriter(out));
+                convert(new MarcStreamReader(in), new MarcTxtWriter(out), maxItems);
             } else if (typeInput.equals("iso") && typeOutput.equals("json")) {
-                int i = convert(new MarcStreamReader(in), new MarcJsonWriter(out));
+                int i = convert(new MarcStreamReader(in), new MarcJsonWriter(out), maxItems);
 
                 if (i > 1) {
                     try (BufferedReader reader = Files.newBufferedReader(outputPath)) {
@@ -135,7 +91,7 @@ public class Main {
         }
     }
 
-    public static int convert(MarcReader reader, MarcWriter writer) {
+    public static int convert(MarcReader reader, MarcWriter writer, int maxItems) {
         int i = 0;
         while (reader.hasNext()) {
             if (i >= maxItems) {
