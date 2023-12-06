@@ -6,7 +6,7 @@
 ### Command Line Arguments:
 
 #### -tI
-Values: json, marc or iso
+Values: json or iso
 
 #### -tO
 Values: json, marc or iso
