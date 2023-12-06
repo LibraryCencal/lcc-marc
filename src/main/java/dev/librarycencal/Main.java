@@ -22,17 +22,10 @@ import java.util.Locale;
 
 public class Main {
     public static int maxItems = 999999999;
+
     public static void main(String[] args) {
-        // Json -> ISO
-        // Json -> Marc
-        // Marc -> Json?
-        // Marc -> ISO?
-        // ISO -> Marc
-        // ISO -> Json
-
-        // -tI json -tO marc -in ... -out ...
-
-        List<String> validTypes = Arrays.asList("json", "marc", "iso");
+        List<String> validInputTypes = Arrays.asList("json", "iso");
+        List<String> validOutputTypes = Arrays.asList("json", "marc", "iso");
         String typeInput = null;
         String typeOutput = null;
         Path inputPath = null;
@@ -43,14 +36,14 @@ public class Main {
             if ("-tI".equals(args[i]) && i + 1 < args.length) {
                 typeInput = args[++i].toLowerCase(Locale.ROOT);
 
-                if (!validTypes.contains(typeInput)) {
+                if (!validInputTypes.contains(typeInput)) {
                     System.err.println("Error: -tI" + typeInput + " is not valid value!");
                     return;
                 }
             } else if ("-tO".equals(args[i]) && i + 1 < args.length) {
                 typeOutput = args[++i].toLowerCase(Locale.ROOT);
 
-                if (!validTypes.contains(typeOutput)) {
+                if (!validOutputTypes.contains(typeOutput)) {
                     System.err.println("Error: -tO" + typeOutput + " is not valid value!");
                     return;
                 }
@@ -60,7 +53,7 @@ public class Main {
                 outputPath = Path.of(args[++i]);
             } else if ("-maxItems".equals(args[i]) && i + 1 < args.length) {
                 try {
-                    max = Integer.parseInt(args[++i]);
+                    maxItems = Integer.parseInt(args[++i]);
                 } catch (NumberFormatException e) {
                     e.printStackTrace();
                     return;
@@ -97,83 +90,48 @@ public class Main {
             return;
         }
 
-        maxItems = max;
-
-        if (typeInput.equals("json") && typeOutput.equals("iso")) {
-            try (FileInputStream in = new FileInputStream(inputPath.toFile());
-                 FileOutputStream out = new FileOutputStream(outputPath.toFile())) {
+        try (FileInputStream in = new FileInputStream(inputPath.toFile());
+             FileOutputStream out = new FileOutputStream(outputPath.toFile())) {
+            if (typeInput.equals("json") && typeOutput.equals("iso")) {
                 convert(new MarcJsonReader(in), new MarcStreamWriter(out));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        } else if (typeInput.equals("json") && typeOutput.equals("marc")) {
-            try (FileInputStream in = new FileInputStream(inputPath.toFile());
-                 FileOutputStream out = new FileOutputStream(outputPath.toFile())) {
+            } else if (typeInput.equals("json") && typeOutput.equals("marc")) {
                 convert(new MarcJsonReader(in), new MarcTxtWriter(out));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        } else if (typeInput.equals("marc") && typeOutput.equals("json")) {
-            try (FileInputStream in = new FileInputStream(inputPath.toFile());
-                 FileOutputStream out = new FileOutputStream(outputPath.toFile())) {
-                convert(new MarcStreamReader(in), new MarcJsonWriter(out));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        } else if (typeInput.equals("marc") && typeOutput.equals("iso")) {
-            try (FileInputStream in = new FileInputStream(inputPath.toFile());
-                 FileOutputStream out = new FileOutputStream(outputPath.toFile())) {
-                convert(new MarcStreamReader(in), new MarcStreamWriter(out));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        } else if (typeInput.equals("iso") && typeOutput.equals("json")) {
-            int i = 0;
-            try (FileInputStream in = new FileInputStream(inputPath.toFile());
-                 FileOutputStream out = new FileOutputStream(outputPath.toFile())) {
-                i = convert(new MarcStreamReader(in), new MarcJsonWriter(out));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            if (i > 1) {
-                try (BufferedReader reader = Files.newBufferedReader(outputPath)) {
-                    BufferedWriter writer = Files.newBufferedWriter(outputPath.getParent().resolve(outputPath.getFileName() + "_temp"));
-
-                    writer.write("[");
-                    String line;
-                    int j = 0;
-                    while ((line = reader.readLine()) != null) {
-                        writer.write(line);
-                        if (j + 1 < i) {
-                            writer.write(",\n");
-                        }
-                        ++j;
-                    }
-
-                    writer.write("]");
-                    writer.close();
-                } catch (IOException e) {
-                    return;
-                }
-                try {
-                    Files.deleteIfExists(outputPath);
-                    Files.move(outputPath.getParent().resolve(outputPath.getFileName() + "_temp"),
-                            outputPath);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-            }
-        } else if (typeInput.equals("iso") && typeOutput.equals("marc")) {
-            try (FileInputStream in = new FileInputStream(inputPath.toFile());
-                 FileOutputStream out = new FileOutputStream(outputPath.toFile())) {
+            } else if (typeInput.equals("iso") && typeOutput.equals("marc")) {
                 convert(new MarcStreamReader(in), new MarcTxtWriter(out));
-            } catch (IOException e) {
-                e.printStackTrace();
+            } else if (typeInput.equals("iso") && typeOutput.equals("json")) {
+                int i = convert(new MarcStreamReader(in), new MarcJsonWriter(out));
+
+                if (i > 1) {
+                    try (BufferedReader reader = Files.newBufferedReader(outputPath)) {
+                        BufferedWriter writer = Files.newBufferedWriter(outputPath.getParent().resolve(outputPath.getFileName() + "_temp"));
+
+                        writer.write("[");
+                        String line;
+                        int j = 0;
+                        while ((line = reader.readLine()) != null) {
+                            writer.write(line);
+                            if (j + 1 < i) {
+                                writer.write(",\n");
+                            }
+                            ++j;
+                        }
+
+                        writer.write("]");
+                        writer.close();
+                    } catch (IOException e) {
+                        return;
+                    }
+                    try {
+                        Files.deleteIfExists(outputPath);
+                        Files.move(outputPath.getParent().resolve(outputPath.getFileName() + "_temp"),
+                                outputPath);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
             }
-        } else {
-            System.err.println("Error: -tI or -tO is not supported");
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
