@@ -5,7 +5,7 @@ plugins {
 
 group = 'dev.librarycencal'
 version = '0.1'
-archivesBaseName = "lc-marc4j"
+archivesBaseName = "lcc-marc"
 
 repositories {
     mavenCentral()
