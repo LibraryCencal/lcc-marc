@@ -10,6 +10,9 @@ import org.marc4j.MarcStreamReader;
 import org.marc4j.MarcStreamWriter;
 import org.marc4j.MarcTxtWriter;
 import org.marc4j.MarcWriter;
+import org.marc4j.MarcXmlWriter;
+import org.marc4j.Mrk8StreamReader;
+import org.marc4j.Mrk8StreamWriter;
 import org.marc4j.marc.Record;
 
 import java.io.BufferedReader;
@@ -17,25 +20,26 @@ import java.io.BufferedWriter;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 
 public class Main {
     public static void main(String[] args) {
-        var parser = new OptionParser();
+        OptionParser parser = new OptionParser();
 
-        var inputTypeArg = parser.accepts("tI").withRequiredArg().ofType(String.class).withValuesConvertedBy(new RegexMatcher("(json|iso)", 0)).required();
-        var outputTypeArg = parser.accepts("tO").withRequiredArg().ofType(String.class).withValuesConvertedBy(new RegexMatcher("(json|iso|marc)", 0)).required();
+        var inputTypeArg = parser.accepts("tI").withRequiredArg().ofType(String.class).withValuesConvertedBy(new RegexMatcher("(json|iso|mrk8)", 0)).required();
+        var outputTypeArg = parser.accepts("tO").withRequiredArg().ofType(String.class).withValuesConvertedBy(new RegexMatcher("(json|iso|marc|mrk8|xml)", 0)).required();
         var inArg = parser.accepts("in").withRequiredArg().ofType(String.class).withValuesConvertedBy(new PathConverter()).required();
         var outArg = parser.accepts("out").withRequiredArg().ofType(String.class).withValuesConvertedBy(new PathConverter()).required();
         var maxItemsArg = parser.accepts("maxItems").withRequiredArg().ofType(Integer.class).defaultsTo(99999999);
-
         var optionSet = parser.parse(args);
 
-        var typeInput = optionSet.valueOf(inputTypeArg);
-        var typeOutput = optionSet.valueOf(outputTypeArg);
-        var inputPath = optionSet.valueOf(inArg);
-        var outputPath = optionSet.valueOf(outArg);
-        var maxItems = optionSet.valueOf(maxItemsArg);
+        String typeInput = optionSet.valueOf(inputTypeArg);
+        String typeOutput = optionSet.valueOf(outputTypeArg);
+        Path inputPath = optionSet.valueOf(inArg);
+        Path outputPath = optionSet.valueOf(outArg);
+        int maxItems = optionSet.valueOf(maxItemsArg);
 
         if (typeInput.equals(typeOutput)) {
             System.err.println("Error: output type cannot be the same as input!");
@@ -45,44 +49,58 @@ public class Main {
             System.err.println("Error: input file does not exist!");
             return;
         }
-
         try (FileInputStream in = new FileInputStream(inputPath.toFile());
-             FileOutputStream out = new FileOutputStream(outputPath.toFile())) {
-            if (typeInput.equals("json") && typeOutput.equals("iso")) {
-                convert(new MarcJsonReader(in), new MarcStreamWriter(out), maxItems);
-            } else if (typeInput.equals("json") && typeOutput.equals("marc")) {
-                convert(new MarcJsonReader(in), new MarcTxtWriter(out), maxItems);
-            } else if (typeInput.equals("iso") && typeOutput.equals("marc")) {
-                convert(new MarcStreamReader(in), new MarcTxtWriter(out), maxItems);
-            } else if (typeInput.equals("iso") && typeOutput.equals("json")) {
-                int i = convert(new MarcStreamReader(in), new MarcJsonWriter(out), maxItems);
+             OutputStream out = new FileOutputStream(outputPath.toFile())) {
 
-                if (i > 1) {
-                    try (BufferedReader reader = Files.newBufferedReader(outputPath)) {
-                        BufferedWriter writer = Files.newBufferedWriter(outputPath.getParent().resolve(outputPath.getFileName() + "_temp"));
+            MarcReader reader = switch (typeInput) {
+                case "json" -> new MarcJsonReader(in);
+                case "iso" -> new MarcStreamReader(in);
+                case "mrk8" -> new Mrk8StreamReader(in);
+                default -> null;
+            };
 
-                        writer.write("[");
-                        String line;
-                        int j = 0;
-                        while ((line = reader.readLine()) != null) {
-                            writer.write(line);
-                            if (j + 1 < i) {
-                                writer.write(",\n");
+            MarcWriter writer = switch (typeOutput) {
+                case "json" -> new MarcJsonWriter(out);
+                case "iso" -> new MarcStreamWriter(out);
+                case "mrk8" -> new Mrk8StreamWriter(out);
+                case "mrc" -> new MarcTxtWriter(out);
+                case "xml" -> new MarcXmlWriter(out, true);
+                default -> null;
+            };
+
+            if (reader == null || writer == null) {
+                System.err.println("Error: No reader or writer for types given!");
+            } else {
+                int i = convert(reader, writer, maxItems);
+
+                if (typeInput.equals("iso") && typeOutput.equals("json")) {
+                    if (i > 1) {
+                        Path outputTemp = outputPath.getParent().resolve(outputPath.getFileName() + "_temp");
+                        try (BufferedReader rreader = Files.newBufferedReader(outputPath)) {
+                            BufferedWriter wwriter = Files.newBufferedWriter(outputTemp);
+
+                            wwriter.write("[");
+                            String line;
+                            int j = 0;
+                            while ((line = rreader.readLine()) != null) {
+                                wwriter.write(line);
+                                if (j + 1 < i) {
+                                    wwriter.write(",\n");
+                                }
+                                ++j;
                             }
-                            ++j;
-                        }
 
-                        writer.write("]");
-                        writer.close();
-                    } catch (IOException e) {
-                        return;
-                    }
-                    try {
-                        Files.deleteIfExists(outputPath);
-                        Files.move(outputPath.getParent().resolve(outputPath.getFileName() + "_temp"),
-                                outputPath);
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                            wwriter.write("]");
+                            wwriter.close();
+                        } catch (IOException e) {
+                            return;
+                        }
+                        try {
+                            Files.deleteIfExists(outputPath);
+                            Files.move(outputTemp, outputPath);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
             }
