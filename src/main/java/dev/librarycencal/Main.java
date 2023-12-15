@@ -6,6 +6,7 @@ import joptsimple.util.RegexMatcher;
 import org.marc4j.MarcJsonReader;
 import org.marc4j.MarcJsonWriter;
 import org.marc4j.MarcReader;
+import org.marc4j.MarcReaderConfig;
 import org.marc4j.MarcStreamReader;
 import org.marc4j.MarcStreamWriter;
 import org.marc4j.MarcTxtWriter;
@@ -13,6 +14,9 @@ import org.marc4j.MarcWriter;
 import org.marc4j.MarcXmlWriter;
 import org.marc4j.Mrk8StreamReader;
 import org.marc4j.Mrk8StreamWriter;
+import org.marc4j.converter.CharConverter;
+import org.marc4j.converter.impl.AnselToUnicode;
+import org.marc4j.converter.impl.UnicodeToAnsel;
 import org.marc4j.marc.Record;
 
 import java.io.BufferedReader;
@@ -32,6 +36,8 @@ public class Main {
         var outputTypeArg = parser.accepts("tO").withRequiredArg().ofType(String.class).withValuesConvertedBy(new RegexMatcher("(json|iso|marc|mrk8|xml)", 0)).required();
         var inArg = parser.accepts("in").withRequiredArg().ofType(String.class).withValuesConvertedBy(new PathConverter()).required();
         var outArg = parser.accepts("out").withRequiredArg().ofType(String.class).withValuesConvertedBy(new PathConverter()).required();
+        var inEncodingArg = parser.accepts("iO").withRequiredArg().ofType(String.class).withValuesConvertedBy(new RegexMatcher("(ansel|unicode|unimarc|iso5426|iso6937)", 0)).required();
+        var outEncodingArg = parser.accepts("eO").withRequiredArg().ofType(String.class).withValuesConvertedBy(new RegexMatcher("(ansel|unicode|unimarc|iso5426|iso6937)", 0)).required();
         var maxItemsArg = parser.accepts("maxItems").withRequiredArg().ofType(Integer.class).defaultsTo(99999999);
         var optionSet = parser.parse(args);
 
@@ -39,6 +45,10 @@ public class Main {
         String typeOutput = optionSet.valueOf(outputTypeArg);
         Path inputPath = optionSet.valueOf(inArg);
         Path outputPath = optionSet.valueOf(outArg);
+
+        String encodingInput = optionSet.valueOf(inEncodingArg);
+        String encodingOutput = optionSet.valueOf(outEncodingArg);
+
         int maxItems = optionSet.valueOf(maxItemsArg);
 
         if (typeInput.equals(typeOutput)) {
@@ -68,9 +78,21 @@ public class Main {
                 default -> null;
             };
 
+
+            CharConverter charConverter = null;
+            if ("ansel".equals(encodingInput) && "unicode".equals(encodingOutput)) {
+                charConverter = new AnselToUnicode();
+            } else if ("unicode".equals(encodingInput) && "ansel".equals(encodingOutput)) {
+                charConverter = new UnicodeToAnsel();
+            }
+
             if (reader == null || writer == null) {
                 System.err.println("Error: No reader or writer for types given!");
             } else {
+                if (charConverter != null) {
+                    writer.setConverter(charConverter);
+                }
+
                 int i = convert(reader, writer, maxItems);
 
                 if (typeInput.equals("iso") && typeOutput.equals("json")) {
