@@ -1,12 +1,13 @@
 package dev.librarycencal;
 
 import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
 import joptsimple.util.PathConverter;
 import joptsimple.util.RegexMatcher;
 import org.marc4j.MarcJsonReader;
 import org.marc4j.MarcJsonWriter;
 import org.marc4j.MarcReader;
-import org.marc4j.MarcReaderConfig;
 import org.marc4j.MarcStreamReader;
 import org.marc4j.MarcStreamWriter;
 import org.marc4j.MarcTxtWriter;
@@ -30,26 +31,44 @@ import java.nio.file.Path;
 
 public class Main {
     public static void main(String[] args) {
-        OptionParser parser = new OptionParser();
+        OptionParser guiParser = new OptionParser();
+        guiParser.accepts("gui");
 
-        var inputTypeArg = parser.accepts("tI").withRequiredArg().ofType(String.class).withValuesConvertedBy(new RegexMatcher("(json|iso|mrk8)", 0)).required();
-        var outputTypeArg = parser.accepts("tO").withRequiredArg().ofType(String.class).withValuesConvertedBy(new RegexMatcher("(json|iso|marc|mrk8|xml)", 0)).required();
-        var inArg = parser.accepts("in").withRequiredArg().ofType(String.class).withValuesConvertedBy(new PathConverter()).required();
-        var outArg = parser.accepts("out").withRequiredArg().ofType(String.class).withValuesConvertedBy(new PathConverter()).required();
-        var inEncodingArg = parser.accepts("iO").withRequiredArg().ofType(String.class).withValuesConvertedBy(new RegexMatcher("(ansel|unicode|unimarc|iso5426|iso6937)", 0)).required();
-        var outEncodingArg = parser.accepts("eO").withRequiredArg().ofType(String.class).withValuesConvertedBy(new RegexMatcher("(ansel|unicode|unimarc|iso5426|iso6937)", 0)).required();
-        var maxItemsArg = parser.accepts("maxItems").withRequiredArg().ofType(Integer.class).defaultsTo(99999999);
-        var optionSet = parser.parse(args);
+        if (guiParser.parse(args).has("gui")) {
+            ConverterGui.start();
+        } else {
+            OptionParser parser = new OptionParser();
 
-        String typeInput = optionSet.valueOf(inputTypeArg);
-        String typeOutput = optionSet.valueOf(outputTypeArg);
-        Path inputPath = optionSet.valueOf(inArg);
-        Path outputPath = optionSet.valueOf(outArg);
+            OptionSpec<String> inputTypeArg = parser.accepts("tI").withRequiredArg().ofType(String.class).withValuesConvertedBy(new RegexMatcher("(json|iso|mrk8)", 0)).required();
+            OptionSpec<String> outputTypeArg = parser.accepts("tO").withRequiredArg().ofType(String.class).withValuesConvertedBy(new RegexMatcher("(json|iso|marc|mrk8|xml)", 0)).required();
+            OptionSpec<Path> inArg = parser.accepts("in").withRequiredArg().ofType(String.class).withValuesConvertedBy(new PathConverter()).required();
+            OptionSpec<Path> outArg = parser.accepts("out").withRequiredArg().ofType(String.class).withValuesConvertedBy(new PathConverter()).required();
+            OptionSpec<String> inEncodingArg = parser.accepts("iO").withRequiredArg().ofType(String.class).withValuesConvertedBy(new RegexMatcher("(ansel|unicode|unimarc|iso5426|iso6937)", 0)).required();
+            OptionSpec<String> outEncodingArg = parser.accepts("eO").withRequiredArg().ofType(String.class).withValuesConvertedBy(new RegexMatcher("(ansel|unicode|unimarc|iso5426|iso6937)", 0)).required();
+            OptionSpec<Integer> maxItemsArg = parser.accepts("maxItems").withRequiredArg().ofType(Integer.class).defaultsTo(99999999);
+            OptionSet optionSet = parser.parse(args);
 
-        String encodingInput = optionSet.valueOf(inEncodingArg);
-        String encodingOutput = optionSet.valueOf(outEncodingArg);
+            ConvertArgs convertArgs = new ConvertArgs(
+                    optionSet.valueOf(inputTypeArg),
+                    optionSet.valueOf(outputTypeArg),
+                    optionSet.valueOf(inArg),
+                    optionSet.valueOf(outArg),
+                    optionSet.valueOf(inEncodingArg),
+                    optionSet.valueOf(outEncodingArg),
+                    optionSet.valueOf(maxItemsArg));
 
-        int maxItems = optionSet.valueOf(maxItemsArg);
+            convert(convertArgs);
+        }
+    }
+
+    public static void convert(ConvertArgs args) {
+        String typeInput = args.typeInput();
+        String typeOutput = args.typeOutput();
+        Path inputPath = args.inputPath();
+        Path outputPath = args.outputPath();
+        String encodingInput = args.encodingInput();
+        String encodingOutput = args.encodingOutput();
+        int maxItems = args.maxItems();
 
         if (typeInput.equals(typeOutput)) {
             System.err.println("Error: output type cannot be the same as input!");
@@ -144,4 +163,5 @@ public class Main {
         }
         return i;
     }
+
 }

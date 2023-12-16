@@ -1,8 +1,5 @@
 # LCC Marc
 
-### Libraries Used
-- [Marc4j](https://github.com/marc4j/marc4j)
-
 ### Command Line Arguments:
 
 #### -tI
@@ -19,3 +16,9 @@ Output file
 
 #### -maxItems
 Maximum number of items loaded from iso to json
+
+### -eI
+
+### -eO
+
+### -gui
