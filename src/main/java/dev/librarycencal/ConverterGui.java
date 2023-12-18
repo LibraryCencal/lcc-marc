@@ -55,6 +55,11 @@ public class ConverterGui {
             }
         });
 
+        JLabel encodeInputLabel= new JLabel("Input Encoding: ");
+        JComboBox<String> encodeInputCombox = new JComboBox<>(new String[]{ "", "Ansel", "Unimarc", "Unicode", "Iso6937", "Iso5426" });
+        JLabel encodeOutputLabel= new JLabel("Output Encoding: ");
+        JComboBox<String> encodeOutputCombox = new JComboBox<>(new String[]{ "", "Ansel", "Unimarc", "Unicode", "Iso6937", "Iso5426" });
+
         JPanel panel = new JPanel();
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         frame.setContentPane(panel);
@@ -89,7 +94,17 @@ public class ConverterGui {
                 outPath = Paths.get(outPathField.getText());
             }
 
-            ConvertArgs convertArgs = new ConvertArgs(inType.toLowerCase(), outType.toLowerCase(), inPath, outPath, "", "", 9999999);
+            String encodeInput = (String) encodeInputCombox.getSelectedItem();
+            if (encodeInput.trim().length() == 0) {
+                encodeInput = "null";
+            }
+
+            String encodeOutput = (String) encodeOutputCombox.getSelectedItem();
+            if (encodeOutput.trim().length() == 0) {
+                encodeOutput = "null";
+            }
+
+            ConvertArgs convertArgs = new ConvertArgs(inType.toLowerCase(), outType.toLowerCase(), inPath, outPath, encodeInput, encodeOutput, 9999999);
             Main.convert(convertArgs);
 
             JOptionPane.showMessageDialog(frame, "Conversion was a success!", "Successful!", JOptionPane.INFORMATION_MESSAGE);
@@ -126,6 +141,18 @@ public class ConverterGui {
                                                         .addComponent(outPathLabel)
                                                         .addComponent(outPathField)
                                                         .addComponent(outPathBtn)
+                                        )
+                                        .addGap(15)
+                                        .addGroup(
+                                                layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                                        .addComponent(encodeInputLabel)
+                                                        .addComponent(encodeInputCombox)
+                                        )
+                                        .addGap(15)
+                                        .addGroup(
+                                                layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                                        .addComponent(encodeOutputLabel)
+                                                        .addComponent(encodeOutputCombox)
                                         )
                                         .addGap(15)
                                         .addComponent(convertButton)
@@ -194,6 +221,30 @@ public class ConverterGui {
                                                                         .addGroup(
                                                                                 layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                                                                                         .addComponent(outPathBtn)
+                                                                        )
+                                                        )
+                                                        .addGroup(
+                                                                layout.createSequentialGroup()
+                                                                        .addGroup(
+                                                                                layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                                                                                        .addComponent(encodeInputLabel)
+                                                                        )
+                                                                        .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                                                                        .addGroup(
+                                                                                layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                                                                                        .addComponent(encodeInputCombox)
+                                                                        )
+                                                        )
+                                                        .addGroup(
+                                                                layout.createSequentialGroup()
+                                                                        .addGroup(
+                                                                                layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                                                                                        .addComponent(encodeOutputLabel)
+                                                                        )
+                                                                        .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                                                                        .addGroup(
+                                                                                layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                                                                                        .addComponent(encodeOutputCombox)
                                                                         )
                                                         )
                                                         .addComponent(convertButton)

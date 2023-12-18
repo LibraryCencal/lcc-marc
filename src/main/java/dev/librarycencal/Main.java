@@ -54,8 +54,8 @@ public class Main {
             OptionSpec<String> outputTypeArg = parser.accepts("tO").withRequiredArg().ofType(String.class).withValuesConvertedBy(new RegexMatcher("(json|iso|marc|mrk8|xml)", 0)).required();
             OptionSpec<Path> inArg = parser.accepts("in").withRequiredArg().ofType(String.class).withValuesConvertedBy(new PathConverter()).required();
             OptionSpec<Path> outArg = parser.accepts("out").withRequiredArg().ofType(String.class).withValuesConvertedBy(new PathConverter()).required();
-            OptionSpec<String> inEncodingArg = parser.accepts("eI").withRequiredArg().ofType(String.class).withValuesConvertedBy(new RegexMatcher("(ansel|unicode|unimarc|iso5426|iso6937)", 0)).required();
-            OptionSpec<String> outEncodingArg = parser.accepts("eO").withRequiredArg().ofType(String.class).withValuesConvertedBy(new RegexMatcher("(ansel|unicode|unimarc|iso5426|iso6937)", 0)).required();
+            OptionSpec<String> inEncodingArg = parser.accepts("eI").withRequiredArg().ofType(String.class).withValuesConvertedBy(new RegexMatcher("(ansel|unicode|unimarc|iso5426|iso6937|null)", 0)).defaultsTo("null").required();
+            OptionSpec<String> outEncodingArg = parser.accepts("eO").withRequiredArg().ofType(String.class).withValuesConvertedBy(new RegexMatcher("(ansel|unicode|unimarc|iso5426|iso6937|null)", 0)).defaultsTo("null").required();
             OptionSpec<Integer> maxItemsArg = parser.accepts("maxItems").withRequiredArg().ofType(Integer.class).defaultsTo(99999999);
             OptionSet optionSet = parser.parse(args);
 
