@@ -7,6 +7,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class ConverterGui {
     public static void start() {
@@ -74,7 +75,7 @@ public class ConverterGui {
                 return;
             }
 
-            Path inPath = Path.of(inPathField.getText());
+            Path inPath = Paths.get(inPathField.getText());
 
             if (!Files.exists(inPath)) {
                 JOptionPane.showMessageDialog(frame, "Input path does not exist!", "Error", JOptionPane.ERROR_MESSAGE);
@@ -83,9 +84,9 @@ public class ConverterGui {
 
             Path outPath;
             if (outPathField.getText().isEmpty()) {
-                outPath = Path.of(inPath.getParent().resolve(inPath.getFileName().toString().substring(0, inPath.getFileName().toString().lastIndexOf("."))).toString());
+                outPath = Paths.get(inPath.getParent().resolve(inPath.getFileName().toString().substring(0, inPath.getFileName().toString().lastIndexOf("."))).toString());
             } else {
-                outPath = Path.of(outPathField.getText());
+                outPath = Paths.get(outPathField.getText());
             }
 
             ConvertArgs convertArgs = new ConvertArgs(inType.toLowerCase(), outType.toLowerCase(), inPath, outPath, "", "", 9999999);
