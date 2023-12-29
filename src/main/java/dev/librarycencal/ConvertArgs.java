@@ -10,9 +10,10 @@ public final class ConvertArgs {
     private final String encodingInput;
     private final String encodingOutput;
     private final int maxItems;
+    private final boolean normalize;
 
     public ConvertArgs(String typeInput, String typeOutput, Path inputPath,
-                       Path outputPath, String encodingInput, String encodingOutput, int maxItems) {
+                       Path outputPath, String encodingInput, String encodingOutput, int maxItems, boolean normalize) {
         this.typeInput = typeInput;
         this.typeOutput = typeOutput;
         this.inputPath = inputPath;
@@ -20,6 +21,7 @@ public final class ConvertArgs {
         this.encodingInput = encodingInput;
         this.encodingOutput = encodingOutput;
         this.maxItems = maxItems;
+        this.normalize = normalize;
     }
 
     public String typeInput() {
@@ -48,5 +50,9 @@ public final class ConvertArgs {
 
     public int maxItems() {
         return this.maxItems;
+    }
+
+    public boolean normalize() {
+        return this.normalize;
     }
 }

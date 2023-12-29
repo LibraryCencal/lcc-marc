@@ -22,10 +22,11 @@ public class ConverterGui {
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
         JLabel inTypeLabel = new JLabel("Input Type: ");
-        JComboBox<String> inTypeDropdown = new JComboBox<>(new String[] { "JSON", "ISO", "Mrk8" });
+        JComboBox<String> inTypeDropdown = new JComboBox<>(new String[] { "ISO", "JSON", "Mrk8" });
 
         JLabel outTypeLabel = new JLabel("Output Type: ");
-        JComboBox<String> outTypeDropdown = new JComboBox<>(new String[] { "JSON", "ISO", "Marc", "Mrk8" });
+        JComboBox<String> outTypeDropdown = new JComboBox<>(new String[] { "ISO", "JSON", "Marc", "Mrk8", "XML" });
+        outTypeDropdown.setSelectedIndex(1);
 
         JLabel inPathLabel = new JLabel("Input Path: ");
         JTextField inPathField = new JTextField();
@@ -37,6 +38,7 @@ public class ConverterGui {
             chooser.addChoosableFileFilter(new FileNameExtensionFilter("marc files (*.mrc)", "mrc"));
             chooser.addChoosableFileFilter(new FileNameExtensionFilter("mrk8 files (*.mrk)", "mrk"));
             chooser.addChoosableFileFilter(new FileNameExtensionFilter("iso files (*.iso)", "iso"));
+            chooser.addChoosableFileFilter(new FileNameExtensionFilter("xml files (*.xml)", "xml"));
             int r = chooser.showOpenDialog(frame);
             if (r == JFileChooser.APPROVE_OPTION) {
                 inPathField.setText(chooser.getSelectedFile().toPath().toAbsolutePath().toString());
@@ -59,6 +61,13 @@ public class ConverterGui {
         JComboBox<String> encodeInputCombox = new JComboBox<>(new String[]{ "", "Ansel", "Unimarc", "Unicode", "Iso6937", "Iso5426" });
         JLabel encodeOutputLabel= new JLabel("Output Encoding: ");
         JComboBox<String> encodeOutputCombox = new JComboBox<>(new String[]{ "", "Ansel", "Unimarc", "Unicode", "Iso6937", "Iso5426" });
+
+        JLabel normalizeLabel = new JLabel("Perform Unicode normalization: ");
+        JCheckBox normalizeCheckbox = new JCheckBox();
+
+        JLabel maxItemsLabel = new JLabel("Maximum number of items: ");
+        JTextField maxItemsField = new JTextField();
+        maxItemsField.setText("-1");
 
         JPanel panel = new JPanel();
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -104,7 +113,17 @@ public class ConverterGui {
                 encodeOutput = "null";
             }
 
-            ConvertArgs convertArgs = new ConvertArgs(inType.toLowerCase(), outType.toLowerCase(), inPath, outPath, encodeInput, encodeOutput, 9999999);
+            int maxItems = 99999999;
+            try {
+                maxItems = Integer.parseInt(maxItemsField.getText());
+
+                if (maxItems < 1) {
+                    maxItems = 99999999;
+                }
+            } catch (NumberFormatException ignored) {
+            }
+
+            ConvertArgs convertArgs = new ConvertArgs(inType.toLowerCase(), outType.toLowerCase(), inPath, outPath, encodeInput, encodeOutput, maxItems, normalizeCheckbox.isSelected());
             Main.convert(convertArgs);
 
             JOptionPane.showMessageDialog(frame, "Conversion was a success!", "Successful!", JOptionPane.INFORMATION_MESSAGE);
@@ -153,6 +172,18 @@ public class ConverterGui {
                                                 layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                                                         .addComponent(encodeOutputLabel)
                                                         .addComponent(encodeOutputCombox)
+                                        )
+                                        .addGap(15)
+                                        .addGroup(
+                                                layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                                        .addComponent(normalizeLabel)
+                                                        .addComponent(normalizeCheckbox)
+                                        )
+                                        .addGap(15)
+                                        .addGroup(
+                                                layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                                        .addComponent(maxItemsLabel)
+                                                        .addComponent(maxItemsField)
                                         )
                                         .addGap(15)
                                         .addComponent(convertButton)
@@ -245,6 +276,30 @@ public class ConverterGui {
                                                                         .addGroup(
                                                                                 layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                                                                                         .addComponent(encodeOutputCombox)
+                                                                        )
+                                                        )
+                                                        .addGroup(
+                                                                layout.createSequentialGroup()
+                                                                        .addGroup(
+                                                                                layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                                                                                        .addComponent(normalizeLabel)
+                                                                        )
+                                                                        .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                                                                        .addGroup(
+                                                                                layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                                                                                        .addComponent(normalizeCheckbox)
+                                                                        )
+                                                        )
+                                                        .addGroup(
+                                                                layout.createSequentialGroup()
+                                                                        .addGroup(
+                                                                                layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                                                                                        .addComponent(maxItemsLabel)
+                                                                        )
+                                                                        .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                                                                        .addGroup(
+                                                                                layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                                                                                        .addComponent(maxItemsField)
                                                                         )
                                                         )
                                                         .addComponent(convertButton)

@@ -25,6 +25,7 @@ import org.marc4j.converter.impl.UnicodeToIso6937;
 import org.marc4j.converter.impl.UnicodeToUnimarc;
 import org.marc4j.converter.impl.UnimarcToUnicode;
 import org.marc4j.marc.Record;
+import org.marc4j.util.MarcXmlDriver;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -57,6 +58,7 @@ public class Main {
             OptionSpec<String> inEncodingArg = parser.accepts("eI").withRequiredArg().ofType(String.class).withValuesConvertedBy(new RegexMatcher("(ansel|unicode|unimarc|iso5426|iso6937|null)", 0)).defaultsTo("null").required();
             OptionSpec<String> outEncodingArg = parser.accepts("eO").withRequiredArg().ofType(String.class).withValuesConvertedBy(new RegexMatcher("(ansel|unicode|unimarc|iso5426|iso6937|null)", 0)).defaultsTo("null").required();
             OptionSpec<Integer> maxItemsArg = parser.accepts("maxItems").withRequiredArg().ofType(Integer.class).defaultsTo(99999999);
+            parser.accepts("normalize");
             OptionSet optionSet = parser.parse(args);
 
             ConvertArgs convertArgs = new ConvertArgs(
@@ -66,7 +68,8 @@ public class Main {
                     optionSet.valueOf(outArg),
                     optionSet.valueOf(inEncodingArg),
                     optionSet.valueOf(outEncodingArg),
-                    optionSet.valueOf(maxItemsArg));
+                    optionSet.valueOf(maxItemsArg),
+                    optionSet.has("normalize"));
 
             convert(convertArgs);
         }
@@ -127,7 +130,11 @@ public class Main {
                     break;
                 }
                 case "xml": {
-                    writer = new MarcXmlWriter(out, true);
+                    writer = new MarcXmlWriter(out, "UTF8");
+                    ((MarcXmlWriter) writer).setIndent(true);
+                    if (args.normalize()) {
+                        ((MarcXmlWriter) writer).setUnicodeNormalization(true);
+                    }
                     break;
                 }
             };
@@ -159,6 +166,7 @@ public class Main {
                 }
 
                 int i = convert(reader, writer, maxItems);
+                writer.close();
 
                 if (typeInput.equals("iso") && typeOutput.equals("json")) {
                     if (i > 1) {
